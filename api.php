@@ -3,6 +3,12 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    http_response_code(405);
+    header('Allow: GET');
+    exit;
+}
+
 define('DATA_DIR', __DIR__ . '/data');
 define('SNAPSHOTS_DIR', DATA_DIR . '/snapshots');
 define('LATEST_FILE', DATA_DIR . '/latest.json');
@@ -15,7 +21,7 @@ function jsonError(string $msg, int $code = 400): void {
 
 function readLatest(): array {
     if (!file_exists(LATEST_FILE)) {
-        jsonError('latest.json not found - run cron/fetch.php first', 404);
+        jsonError('Data not available', 404);
     }
     $data = json_decode(file_get_contents(LATEST_FILE), true);
     if (!is_array($data)) {
@@ -33,7 +39,8 @@ $action = $_GET['action'] ?? '';
 switch ($action) {
 
     case 'latest':
-        echo file_get_contents(LATEST_FILE);
+        $data = readLatest();
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
         break;
 
     case 'regions':
@@ -58,6 +65,9 @@ switch ($action) {
 
         $regionFilter = isset($_GET['region']) && $_GET['region'] !== '' ? $_GET['region'] : null;
         $hours = isset($_GET['hours']) ? (int)$_GET['hours'] : 0;
+        if ($hours < 0 || $hours > 720) {
+            jsonError('Invalid hours parameter', 400);
+        }
 
         // Collect snapshot files
         $files = glob(SNAPSHOTS_DIR . '/*.json');
@@ -92,7 +102,7 @@ switch ($action) {
 
         foreach ($files as $file) {
             $raw = file_get_contents($file);
-            $snapshot = json_decode($raw, true);
+            $snapshot = json_decode($raw, true, 64);
             if (!is_array($snapshot)) continue;
 
             $ts = $snapshot['fetchedAt'] ?? basename($file, '.json');

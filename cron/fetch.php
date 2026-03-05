@@ -34,14 +34,16 @@ if (!is_dir(SNAPSHOTS_DIR)) {
 // Fetch data
 $raw = fetchData();
 if ($raw === false) {
-    logMessage('ERROR: Failed to fetch data from API');
+    $err = error_get_last();
+    $detail = $err ? $err['message'] : 'unknown error';
+    logMessage('ERROR: Failed to fetch data from API – ' . $detail);
     exit(1);
 }
 
 // Validate JSON
 $data = json_decode($raw, true);
 if (!is_array($data)) {
-    logMessage('ERROR: Invalid JSON response');
+    logMessage('ERROR: Invalid JSON response – ' . json_last_error_msg());
     exit(1);
 }
 
@@ -62,6 +64,8 @@ $snapshot = [
 $encoded = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
 file_put_contents($snapshotFile, $encoded, LOCK_EX);
-file_put_contents(LATEST_FILE, $encoded, LOCK_EX);
+$tmpFile = LATEST_FILE . '.tmp';
+file_put_contents($tmpFile, $encoded, LOCK_EX);
+rename($tmpFile, LATEST_FILE);
 
 logMessage("OK: {$count} projects saved to {$timestamp}.json");
