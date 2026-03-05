@@ -86,16 +86,18 @@ switch ($action) {
             $files = array_values($files);
         }
 
-        // Limit to max snapshots, sample evenly if more
-        $limitParam   = isset($_GET['limit']) ? (int)$_GET['limit'] : 500;
-        $maxSnapshots = max(1, min(1000, $limitParam));
-        if (count($files) > $maxSnapshots) {
-            $step = count($files) / $maxSnapshots;
-            $sampled = [];
-            for ($i = 0; $i < $maxSnapshots; $i++) {
-                $sampled[] = $files[(int)round($i * $step)];
+        // Konkrétne obdobie (hours > 0) – vrátim všetky body bez sampingu
+        // Celá história (hours = 0) – sampujem na 500 pre výkon
+        if ($hours === 0) {
+            $maxSnapshots = 500;
+            if (count($files) > $maxSnapshots) {
+                $step = count($files) / $maxSnapshots;
+                $sampled = [];
+                for ($i = 0; $i < $maxSnapshots; $i++) {
+                    $sampled[] = $files[(int)round($i * $step)];
+                }
+                $files = $sampled;
             }
-            $files = $sampled;
         }
 
         $timestamps = [];

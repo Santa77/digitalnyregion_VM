@@ -131,6 +131,7 @@ let state = {
   trendWindow: savedTrendWindow,
   latestData: null,
   historyData: null,
+  trendData: null,
   chart: null,
   trendChart: null,
 };
@@ -228,8 +229,15 @@ function renderCards(data) {
     const rank = i + 1;
     const rankClass = rank <= 3 ? `rank-${rank}` : '';
     const rankStr = String(rank).padStart(2, '0');
+    const disabled = p.votingEnabled === false;
+    const prev = !disabled && i > 0 && sorted[i - 1].votingEnabled !== false ? sorted[i - 1] : null;
+    const diff = prev !== null ? (p.votesCount ?? 0) - (prev.votesCount ?? 0) : null;
+    const diffHtml = diff !== null
+      ? `<div class="card-diff">${fmt(diff)}</div>`
+      : '';
+
     const item = document.createElement('div');
-    item.className = `card-item ${rankClass}`;
+    item.className = `card-item ${rankClass}${disabled ? ' card-item--disabled' : ''}`;
     item.innerHTML = `
       <div class="card-ghost" aria-hidden="true">${rankStr}</div>
       <div class="card-rank">${rankStr}</div>
@@ -241,7 +249,10 @@ function renderCards(data) {
           <button class="card-detail-btn" data-id="${escHtml(String(p.id ?? ''))}" aria-label="Detail projektu">DETAIL</button>
         </div>
       </div>
-      <div class="card-votes">${fmt(p.votesCount ?? 0)}</div>`;
+      <div class="card-votes-col">
+        <div class="card-votes">${fmt(p.votesCount ?? 0)}</div>
+        ${diffHtml}
+      </div>`;
     grid.appendChild(item);
   });
 
@@ -272,18 +283,30 @@ function escHtml(str) {
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
 
-async function fetchHistory() {
+async function fetchHistoryChart() {
   const params = { action: 'history' };
   if (state.region) params.region = state.region;
   if (state.hours) params.hours = state.hours;
-
   try {
     const data = await apiFetch(params);
     state.historyData = data;
     renderChart(data);
-    renderTrendChart(data, state.trendWindow);
   } catch (e) {
     showError('Nepodarilo sa načítať históriu: ' + e.message);
+  }
+}
+
+async function fetchTrendData() {
+  const params = { action: 'history' };
+  if (state.region) params.region = state.region;
+  // Konverzia: 1 snapshot = 5 min → trendWindow snapshotov = trendWindow*5/60 hodín
+  params.hours = Math.round(state.trendWindow * 5 / 60);
+  try {
+    const data = await apiFetch(params);
+    state.trendData = data;
+    renderTrendChart(data, state.trendWindow);
+  } catch (e) {
+    showError('Nepodarilo sa načítať trendy: ' + e.message);
   }
 }
 
@@ -639,7 +662,7 @@ document.getElementById('region-menu').addEventListener('click', e => {
 
   if (state.latestData) renderCards(state.latestData);
   if (state.latestData) updateStats(state.latestData);
-  fetchHistory();
+  Promise.all([fetchHistoryChart(), fetchTrendData()]);
 });
 
 document.getElementById('hours-filter').addEventListener('click', e => {
@@ -651,7 +674,7 @@ document.getElementById('hours-filter').addEventListener('click', e => {
   document.querySelectorAll('#hours-filter button').forEach(b =>
     b.classList.toggle('active', b === btn));
 
-  fetchHistory();
+  fetchHistoryChart();
 });
 
 document.getElementById('trend-filter').addEventListener('click', e => {
@@ -663,7 +686,7 @@ document.getElementById('trend-filter').addEventListener('click', e => {
   document.querySelectorAll('#trend-filter button').forEach(b =>
     b.classList.toggle('active', b === btn));
 
-  if (state.historyData) renderTrendChart(state.historyData, state.trendWindow);
+  fetchTrendData();
 });
 
 // ── Cards panel collapse ──────────────────────────────────────────────────────
@@ -728,12 +751,12 @@ async function init() {
     if (e.key === 'Escape') closeModal();
   });
 
-  await Promise.all([fetchLatest(), fetchRegions(), fetchHistory()]);
+  await Promise.all([fetchLatest(), fetchRegions(), fetchHistoryChart(), fetchTrendData()]);
 }
 
 function startAutoRefresh() {
   setInterval(() => {
-    Promise.all([fetchLatest(), fetchHistory()]).catch(() => {});
+    Promise.all([fetchLatest(), fetchHistoryChart(), fetchTrendData()]).catch(() => {});
   }, REFRESH_MS);
 }
 

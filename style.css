@@ -379,6 +379,21 @@ a { color: inherit; text-decoration: none; }
 
 .card-item:hover { background: var(--bg-hover); }
 
+.card-item--disabled {
+  opacity: 0.45;
+}
+
+.card-item--disabled .card-title,
+.card-item--disabled .card-votes {
+  text-decoration: line-through;
+  text-decoration-color: var(--red);
+}
+
+.card-item--disabled .card-detail-btn {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .card-item.rank-1::before { background: var(--gold); }
 .card-item.rank-2::before { background: var(--silver); }
 .card-item.rank-3::before { background: var(--bronze); }
@@ -467,6 +482,13 @@ a { color: inherit; text-decoration: none; }
   color: var(--amber);
 }
 
+.card-votes-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
 .card-votes {
   font-family: var(--font-d);
   font-size: 2.25rem;
@@ -474,10 +496,19 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: 0.02em;
   color: var(--text);
   text-align: right;
-  flex-shrink: 0;
 }
 
 .card-item.rank-1 .card-votes { color: var(--gold-text); }
+
+.card-diff {
+  font-family: var(--font-d);
+  font-size: 1.1rem;
+  color: var(--red);
+  text-align: right;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
 
 .empty-state {
   grid-column: 1 / -1;
