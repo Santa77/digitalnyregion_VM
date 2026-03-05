@@ -86,8 +86,9 @@ switch ($action) {
             $files = array_values($files);
         }
 
-        // Limit to max 500 snapshots, sample evenly if more
-        $maxSnapshots = 500;
+        // Limit to max snapshots, sample evenly if more
+        $limitParam   = isset($_GET['limit']) ? (int)$_GET['limit'] : 500;
+        $maxSnapshots = max(1, min(1000, $limitParam));
         if (count($files) > $maxSnapshots) {
             $step = count($files) / $maxSnapshots;
             $sampled = [];

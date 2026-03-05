@@ -153,9 +153,11 @@
     <div class="panel-hdr">
       <span class="panel-title">↑ TRENDY — PRÍRASTKY HLASOV</span>
       <div class="seg-btns" id="trend-filter">
-        <button class="active" data-window="10">10 MERANÍ</button>
-        <button data-window="50">50 MERANÍ</button>
-        <button data-window="100">100 MERANÍ</button>
+        <button class="active" data-window="12">1 HOD</button>
+        <button data-window="36">3 HOD</button>
+        <button data-window="72">6 HOD</button>
+        <button data-window="144">12 HOD</button>
+        <button data-window="288">24 HOD</button>
       </div>
     </div>
     <div class="chart-container chart-container--trend">
@@ -168,10 +170,14 @@
     <div class="panel-hdr">
       <span class="panel-title">~ HISTORICKÝ VÝVOJ HLASOV</span>
       <div class="seg-btns" id="hours-filter">
-        <button data-hours="6">6H</button>
-        <button class="active" data-hours="0">VŠETKO</button>
-        <button data-hours="24">24H</button>
-        <button data-hours="72">3D</button>
+        <button data-hours="1">1 HOD</button>
+        <button data-hours="3">3 HOD</button>
+        <button data-hours="6">6 HOD</button>
+        <button data-hours="12">12 HOD</button>
+        <button data-hours="24">24 HOD</button>
+        <button data-hours="72">3 DNI</button>
+        <button data-hours="168">7 DNÍ</button>
+        <button class="active" data-hours="0">CELÁ HISTÓRIA</button>
       </div>
     </div>
     <div class="chart-container">
@@ -182,6 +188,36 @@
 </main>
 
 <div id="error-toast-container" aria-live="polite"></div>
+
+<!-- ── Project detail modal ──────────────────────────── -->
+<div id="project-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+  <div class="modal-box">
+    <div class="modal-header">
+      <button class="modal-close" id="modal-close" aria-label="Zavrieť">×</button>
+    </div>
+    <div id="modal-img-wrap" class="modal-img-wrap">
+      <img id="modal-img" src="" alt="" class="modal-img">
+    </div>
+    <div class="modal-body">
+      <div class="modal-cat" id="modal-cat"></div>
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-loc" id="modal-loc"></div>
+      <div class="modal-votes-row">
+        <span class="modal-votes-label">HLASY</span>
+        <span class="modal-votes" id="modal-votes"></span>
+      </div>
+      <p class="modal-desc" id="modal-desc"></p>
+      <div id="modal-goals-wrap" class="modal-section">
+        <div class="modal-section-title">CIELE PROJEKTU</div>
+        <ul id="modal-goals" class="modal-goals"></ul>
+      </div>
+      <div id="modal-impact-wrap" class="modal-section">
+        <div class="modal-section-title">DOPAD</div>
+        <p id="modal-impact"></p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>

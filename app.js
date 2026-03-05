@@ -110,7 +110,7 @@ function loadFiltersFromHash() {
   return {
     region: params.get('region') ?? '',
     hours: parseInt(params.get('hours') ?? '0', 10) || 0,
-    trendWindow: parseInt(params.get('tw') ?? '10', 10) || 10,
+    trendWindow: parseInt(params.get('tw') ?? '12', 10) || 12,
   };
 }
 
@@ -118,7 +118,7 @@ function persistFilters() {
   const params = new URLSearchParams();
   if (state.region) params.set('region', state.region);
   if (state.hours) params.set('hours', String(state.hours));
-  if (state.trendWindow !== 10) params.set('tw', String(state.trendWindow));
+  if (state.trendWindow !== 12) params.set('tw', String(state.trendWindow));
   const hash = params.toString();
   history.replaceState(null, '', hash ? '#' + hash : location.pathname + location.search);
 }
@@ -134,6 +134,8 @@ let state = {
   chart: null,
   trendChart: null,
 };
+
+let projectsStore = {};
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -220,7 +222,9 @@ function renderCards(data) {
 
   grid.style.background = sorted.length ? '' : 'transparent';
 
+  projectsStore = {};
   sorted.forEach((p, i) => {
+    projectsStore[String(p.id)] = p;
     const rank = i + 1;
     const rankClass = rank <= 3 ? `rank-${rank}` : '';
     const rankStr = String(rank).padStart(2, '0');
@@ -232,7 +236,10 @@ function renderCards(data) {
       <div class="card-info">
         <div class="card-title">${escHtml(p.title ?? '')}</div>
         <div class="card-meta">${escHtml(p.city ?? '')} · ${escHtml(p.region ?? '')}</div>
-        <span class="card-cat">${escHtml(p.category ?? '')}</span>
+        <div class="card-cat-row">
+          <span class="card-cat">${escHtml(p.category ?? '')}</span>
+          <button class="card-detail-btn" data-id="${escHtml(String(p.id ?? ''))}" aria-label="Detail projektu">DETAIL</button>
+        </div>
       </div>
       <div class="card-votes">${fmt(p.votesCount ?? 0)}</div>`;
     grid.appendChild(item);
@@ -557,6 +564,62 @@ function renderTrendChart(historyData, window) {
   state.trendChart._currentVotes = currentVotes;
 }
 
+// ── Project detail modal ──────────────────────────────────────────────────────
+
+function openModal(p) {
+  const modal   = document.getElementById('project-modal');
+  const box     = modal.querySelector('.modal-box');
+  const imgWrap = document.getElementById('modal-img-wrap');
+  const img     = document.getElementById('modal-img');
+
+  // Okamžite vyčisti obrázok, aby starý nebol viditeľný
+  img.src = '';
+  imgWrap.hidden = true;
+
+  // Naplň text (pred zobrazením – žiadne relikty)
+  document.getElementById('modal-cat').textContent   = p.category ?? '';
+  document.getElementById('modal-title').textContent = p.title ?? '';
+  document.getElementById('modal-loc').textContent   = [p.city, p.region].filter(Boolean).join(' · ');
+  document.getElementById('modal-votes').textContent = fmt(p.votesCount ?? 0);
+  document.getElementById('modal-desc').textContent  = p.descriptionFull || p.description || '';
+
+  const goalsWrap = document.getElementById('modal-goals-wrap');
+  const goalsList = document.getElementById('modal-goals');
+  let goals = [];
+  try { goals = JSON.parse(p.goals || '[]'); } catch(e) {}
+  if (Array.isArray(goals) && goals.length > 0) {
+    goalsList.innerHTML = goals.map(g => `<li>${escHtml(g)}</li>`).join('');
+    goalsWrap.hidden = false;
+  } else {
+    goalsWrap.hidden = true;
+  }
+
+  const impactWrap = document.getElementById('modal-impact-wrap');
+  document.getElementById('modal-impact').textContent = p.impact ?? '';
+  impactWrap.hidden = !p.impact;
+
+  // Zobraz modal a prehraj animáciu
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  box.style.animation = 'none';
+  void box.offsetHeight; // force reflow – reštartuje animáciu
+  box.style.animation = '';
+
+  // Načítaj obrázok asynchrónne po zobrazení modalu
+  if (p.imageUrl) {
+    img.alt = p.title ?? '';
+    imgWrap.hidden = false;
+    img.src = p.imageUrl;
+  }
+
+  document.getElementById('modal-close').focus();
+}
+
+function closeModal() {
+  document.getElementById('project-modal').hidden = true;
+  document.body.style.overflow = '';
+}
+
 // ── Events ────────────────────────────────────────────────────────────────────
 
 document.getElementById('region-menu').addEventListener('click', e => {
@@ -645,6 +708,24 @@ async function init() {
   document.addEventListener('click', () => {
     regionWrap.classList.remove('open');
     regionBtn.setAttribute('aria-expanded', 'false');
+  });
+
+  // Cards grid – detail button delegation
+  document.getElementById('cards-grid').addEventListener('click', e => {
+    const btn = e.target.closest('.card-detail-btn');
+    if (!btn) return;
+    e.stopPropagation();
+    const project = projectsStore[btn.dataset.id];
+    if (project) openModal(project);
+  });
+
+  // Modal close
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('project-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('project-modal')) closeModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
   });
 
   await Promise.all([fetchLatest(), fetchRegions(), fetchHistory()]);
