@@ -19,11 +19,18 @@
   <meta property="og:title" content="Voting Monitor – Digitálny región Slovakia">
   <meta property="og:description" content="Sledujte v reálnom čase hlasovanie v súťaži Digitálny región. Aktuálne poradie projektov, trendy prírastkov hlasov a historický vývoj pre všetky kraje Slovenska.">
   <meta property="og:locale" content="sk_SK">
+  <meta property="og:logo" content="https://vyvoj.rsnet.sk/~santa/kniznica/docs/logo.svg">
+  <meta property="og:image" content="https://vyvoj.rsnet.sk/~santa/kniznica/docs/screenshot-main.png">
+  <meta property="og:image:width" content="1366">
+  <meta property="og:image:height" content="868">
+  <meta property="og:image:alt" content="Voting Monitor dashboard – poradie projektov, trendy hlasov a historický vývoj v súťaži Digitálny región Slovakia">
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Voting Monitor – Digitálny región Slovakia">
   <meta name="twitter:description" content="Sledujte v reálnom čase hlasovanie v súťaži Digitálny región. Aktuálne poradie projektov, trendy prírastkov hlasov a historický vývoj pre všetky kraje Slovenska.">
+  <meta name="twitter:image" content="https://vyvoj.rsnet.sk/~santa/kniznica/docs/screenshot-main.png">
+  <meta name="twitter:image:alt" content="Voting Monitor dashboard – Digitálny región Slovakia">
 
   <!-- JSON-LD -->
   <script type="application/ld+json">
@@ -36,123 +43,146 @@
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Any",
     "inLanguage": "sk",
-    "author": {
-      "@type": "Person",
-      "name": "Santa"
+    "image": "https://vyvoj.rsnet.sk/~santa/kniznica/docs/screenshot-main.png",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://vyvoj.rsnet.sk/~santa/kniznica/docs/logo.svg",
+      "width": 512,
+      "height": 512
     },
+    "author": { "@type": "Person", "name": "Santa" },
     "about": {
       "@type": "Event",
       "name": "Digitálny región – súťaž projektov",
       "url": "https://www.digitalnyregion.sk",
-      "location": {
-        "@type": "Country",
-        "name": "Slovensko"
-      }
+      "location": { "@type": "Country", "name": "Slovensko" }
     }
   }
   </script>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Inline theme init – must run before CSS to prevent FOUC -->
+  <script>
+    (function(){
+      var t;
+      try { t = localStorage.getItem('vmTheme'); } catch(e){}
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.svg" sizes="any">
+  <link rel="apple-touch-icon" href="docs/logo.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<nav class="navbar navbar-dark sticky-top">
-  <div class="container-fluid">
-    <span class="navbar-brand fw-bold">
-      <i class="bi bi-bar-chart-fill me-2"></i>Voting Monitor
-    </span>
-    <div class="d-flex align-items-center gap-3">
-      <span class="text-light small" id="last-update">
-        <i class="bi bi-clock me-1"></i>Načítavam…
-      </span>
-      <div class="dropdown">
-        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="regionDropdown"
-                data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-geo-alt me-1"></i><span id="region-label">Všetky regióny</span>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" id="region-menu" aria-labelledby="regionDropdown">
-          <li><a class="dropdown-item active" href="#" data-region="">Všetky regióny</a></li>
-        </ul>
-      </div>
+<!-- ── Header ─────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="hdr-brand">
+    <div class="hdr-live"><span class="live-dot"></span>LIVE</div>
+    <div class="hdr-title">VOTING<br>MONITOR</div>
+  </div>
+
+  <div class="hdr-meta">
+    <div id="last-update" class="hdr-ts">—</div>
+    <div class="hdr-sub">DIGITÁLNY REGIÓN · SLOVENSKO · AUTO-REFRESH 5 MIN</div>
+  </div>
+
+  <div class="hdr-controls">
+    <button class="theme-btn" id="theme-toggle" aria-label="Prepnúť režim">
+      <!-- icon injected by app.js -->
+    </button>
+    <div class="region-wrap" id="region-wrap">
+      <button class="region-btn" id="regionDropdown" aria-haspopup="listbox" aria-expanded="false">
+        <span id="region-label">VŠETKY REGIÓNY</span>
+        <svg class="chevron-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+          <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <ul class="region-menu" id="region-menu" role="listbox">
+        <li><a class="dropdown-item active" href="#" data-region="">VŠETKY REGIÓNY</a></li>
+      </ul>
     </div>
   </div>
-</nav>
+</header>
 
-<div class="container-fluid py-4">
-
-  <!-- Stats row -->
-  <div class="row g-3 mb-4" id="stats-row">
-    <div class="col-6 col-md-3">
-      <div class="stat-card">
-        <div class="stat-value" id="stat-projects">—</div>
-        <div class="stat-label">Projektov</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="stat-card">
-        <div class="stat-value" id="stat-votes">—</div>
-        <div class="stat-label">Hlasov celkom</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="stat-card">
-        <div class="stat-value" id="stat-leader">—</div>
-        <div class="stat-label">Líder</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="stat-card">
-        <div class="stat-value" id="stat-regions">—</div>
-        <div class="stat-label">Regiónov</div>
-      </div>
-    </div>
+<!-- ── Stats strip ────────────────────────────────────── -->
+<div class="stats-strip">
+  <div class="stat-cell">
+    <div class="stat-value" id="stat-projects">—</div>
+    <div class="stat-label">PROJEKTOV</div>
   </div>
+  <div class="stat-cell">
+    <div class="stat-value" id="stat-votes">—</div>
+    <div class="stat-label">HLASOV CELKOM</div>
+  </div>
+  <div class="stat-cell stat-cell--wide">
+    <div class="stat-value stat-value--leader" id="stat-leader">—</div>
+    <div class="stat-label">LÍDER</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-value" id="stat-regions">—</div>
+    <div class="stat-label">REGIÓNOV</div>
+  </div>
+</div>
+
+<!-- ── Main ───────────────────────────────────────────── -->
+<main class="main-content">
 
   <!-- Project cards -->
-  <div class="row g-3 mb-4" id="cards-grid"></div>
+  <section class="panel" id="cards-panel">
+    <div class="panel-hdr panel-hdr--toggle" id="cards-panel-hdr">
+      <span class="panel-title">≡ PORADIE PROJEKTOV</span>
+      <button class="collapse-btn" id="cards-collapse-btn" aria-expanded="true" aria-controls="cards-grid">
+        <svg class="collapse-icon" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+          <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="cards-grid" id="cards-grid"></div>
+  </section>
 
   <!-- Trend chart -->
-  <div class="chart-section mb-4">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h6 class="mb-0 fw-semibold">
-        <i class="bi bi-rocket-takeoff me-2 text-accent"></i>Trendy – prírastky hlasov
-      </h6>
-      <div class="btn-group btn-group-sm" role="group" id="trend-filter">
-        <button type="button" class="btn btn-outline-secondary active" data-window="10">10 meraní</button>
-        <button type="button" class="btn btn-outline-secondary" data-window="50">50 meraní</button>
-        <button type="button" class="btn btn-outline-secondary" data-window="100">100 meraní</button>
+  <section class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">↑ TRENDY — PRÍRASTKY HLASOV</span>
+      <div class="seg-btns" id="trend-filter">
+        <button class="active" data-window="10">10 MERANÍ</button>
+        <button data-window="50">50 MERANÍ</button>
+        <button data-window="100">100 MERANÍ</button>
       </div>
     </div>
     <div class="chart-container chart-container--trend">
       <canvas id="trend-chart"></canvas>
     </div>
-  </div>
+  </section>
 
-  <!-- Chart -->
-  <div class="chart-section">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <h6 class="mb-0 fw-semibold">
-        <i class="bi bi-graph-up me-2 text-accent"></i>Vývoj hlasov
-      </h6>
-      <div class="btn-group btn-group-sm" role="group" id="hours-filter">
-        <button type="button" class="btn btn-outline-secondary" data-hours="6">6h</button>
-        <button type="button" class="btn btn-outline-secondary active" data-hours="0">Všetko</button>
-        <button type="button" class="btn btn-outline-secondary" data-hours="24">24h</button>
-        <button type="button" class="btn btn-outline-secondary" data-hours="72">3d</button>
+  <!-- Line chart -->
+  <section class="panel">
+    <div class="panel-hdr">
+      <span class="panel-title">~ HISTORICKÝ VÝVOJ HLASOV</span>
+      <div class="seg-btns" id="hours-filter">
+        <button data-hours="6">6H</button>
+        <button class="active" data-hours="0">VŠETKO</button>
+        <button data-hours="24">24H</button>
+        <button data-hours="72">3D</button>
       </div>
     </div>
     <div class="chart-container">
       <canvas id="votes-chart"></canvas>
     </div>
-  </div>
+  </section>
 
-</div>
+</main>
 
-<div id="error-toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index:9999"></div>
+<div id="error-toast-container" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <script src="app.js"></script>

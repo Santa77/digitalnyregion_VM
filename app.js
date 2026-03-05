@@ -3,6 +3,100 @@
 const API = 'api.php';
 const REFRESH_MS = 5 * 60 * 1000;
 
+// ── Theme ──────────────────────────────────────────────────────────────────────
+
+const CHART_THEMES = {
+  dark: {
+    tooltipBg:    '#0c0c0c',
+    tooltipBorder:'#242424',
+    tooltipTitle: '#d8d3c8',
+    tooltipBody:  '#7a776f',
+    tickX:        '#3e3c38',
+    tickY:        '#7a776f',
+    gridX:        '#111111',
+    gridY:        '#181818',
+    legend:       '#7a776f',
+    pillBg:       'rgba(12,12,12,0.88)',
+    pillBorder:   'rgba(255,255,255,0.18)',
+    pillText:     '#d8d3c8',
+  },
+  light: {
+    tooltipBg:    '#e6e1d7',
+    tooltipBorder:'#c0b9ac',
+    tooltipTitle: '#18150f',
+    tooltipBody:  '#6a6358',
+    tickX:        '#a8a098',
+    tickY:        '#6a6358',
+    gridX:        '#ddd8ce',
+    gridY:        '#cec8bc',
+    legend:       '#6a6358',
+    pillBg:       'rgba(232,228,220,0.92)',
+    pillBorder:   'rgba(0,0,0,0.18)',
+    pillText:     '#18150f',
+  },
+};
+
+function getTheme() {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+function tc() { return CHART_THEMES[getTheme()]; }
+
+const SUN_SVG  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+const MOON_SVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+
+function updateThemeBtn() {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const dark = getTheme() === 'dark';
+  btn.innerHTML = dark ? SUN_SVG : MOON_SVG;
+  btn.setAttribute('aria-label', dark ? 'Prepnúť na svetlý režim' : 'Prepnúť na tmavý režim');
+}
+
+function applyChartTheme() {
+  const c = tc();
+  const monoFont = { size: 10, family: "'DM Mono', monospace" };
+
+  if (state.chart) {
+    const o = state.chart.options;
+    o.plugins.legend.labels.color            = c.legend;
+    o.plugins.tooltip.backgroundColor        = c.tooltipBg;
+    o.plugins.tooltip.borderColor            = c.tooltipBorder;
+    o.plugins.tooltip.titleColor             = c.tooltipTitle;
+    o.plugins.tooltip.bodyColor              = c.tooltipBody;
+    o.scales.x.ticks.color                   = c.tickX;
+    o.scales.x.grid.color                    = c.gridX;
+    o.scales.y.ticks.color                   = c.tickY;
+    o.scales.y.grid.color                    = c.gridY;
+    o.scales.x.ticks.font                    = monoFont;
+    o.scales.y.ticks.font                    = monoFont;
+    state.chart.update('none');
+  }
+
+  if (state.trendChart) {
+    const o = state.trendChart.options;
+    o.plugins.tooltip.backgroundColor        = c.tooltipBg;
+    o.plugins.tooltip.borderColor            = c.tooltipBorder;
+    o.plugins.tooltip.titleColor             = c.tooltipTitle;
+    o.plugins.tooltip.bodyColor              = c.tooltipBody;
+    o.scales.x.ticks.color                   = c.tickX;
+    o.scales.x.grid.color                    = c.gridY;
+    o.scales.y.ticks.color                   = c.tickY;
+    o.scales.y.grid.color                    = c.gridX;
+    o.scales.x.ticks.font                    = monoFont;
+    o.scales.y.ticks.font                    = monoFont;
+    state.trendChart.update('none');
+  }
+}
+
+function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('vmTheme', next); } catch(e) {}
+  updateThemeBtn();
+  applyChartTheme();
+}
+
 // Palette for chart lines (repeats if more than 20 projects)
 const PALETTE = [
   '#0ea5e9','#f59e0b','#10b981','#f43f5e','#8b5cf6',
@@ -60,11 +154,9 @@ function showError(msg) {
   const container = document.getElementById('error-toast-container');
   const id = 'toast-' + Date.now();
   container.insertAdjacentHTML('beforeend', `
-    <div id="${id}" class="toast align-items-center text-bg-danger border-0 show mb-2" role="alert">
-      <div class="d-flex">
-        <div class="toast-body"><i class="bi bi-exclamation-triangle me-2"></i>${msg}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
+    <div id="${id}" class="error-toast" role="alert">
+      <span class="error-toast-msg">⚠ ${msg}</span>
+      <button class="error-toast-close" onclick="document.getElementById('${id}').remove()" aria-label="Zavrieť">×</button>
     </div>`);
   setTimeout(() => document.getElementById(id)?.remove(), 6000);
 }
@@ -91,7 +183,7 @@ async function fetchRegions() {
     });
     // Apply persisted region selection after dropdown is populated
     document.getElementById('region-label').textContent =
-      state.region || 'Všetky regióny';
+      state.region || 'VŠETKY REGIÓNY';
     document.querySelectorAll('#region-menu .dropdown-item').forEach(el =>
       el.classList.toggle('active', el.dataset.region === state.region));
   } catch (e) {
@@ -107,8 +199,8 @@ async function fetchLatest() {
     state.latestData = data;
     renderCards(data);
     updateStats(data);
-    document.getElementById('last-update').innerHTML =
-      `<i class="bi bi-clock me-1"></i>Aktualizované: ${fmtDate(data.fetchedAt)}`;
+    document.getElementById('last-update').textContent =
+      `AKTUALIZOVANÉ: ${fmtDate(data.fetchedAt)}`;
   } catch (e) {
     showError('Nepodarilo sa načítať dáta: ' + e.message);
   }
@@ -126,33 +218,28 @@ function renderCards(data) {
   const grid = document.getElementById('cards-grid');
   grid.innerHTML = '';
 
+  grid.style.background = sorted.length ? '' : 'transparent';
+
   sorted.forEach((p, i) => {
     const rank = i + 1;
-    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
-    const col = document.createElement('div');
-    col.className = 'col-12 col-sm-6 col-lg-4 col-xl-3';
-    col.innerHTML = `
-      <div class="project-card h-100">
-        <div class="d-flex align-items-start gap-2 mb-2">
-          <span class="rank-badge ${rankClass}">${rank}</span>
-          <div class="flex-grow-1 min-w-0">
-            <div class="project-title">${escHtml(p.title ?? '')}</div>
-            <div class="project-meta">
-              <i class="bi bi-geo-alt me-1"></i>${escHtml(p.city ?? '')}
-              <span class="ms-2"><i class="bi bi-map me-1"></i>${escHtml(p.region ?? '')}</span>
-            </div>
-          </div>
-          <div class="votes-count">${fmt(p.votesCount ?? 0)}</div>
-        </div>
-        <div>
-          <span class="badge-category">${escHtml(p.category ?? '')}</span>
-        </div>
-      </div>`;
-    grid.appendChild(col);
+    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+    const rankStr = String(rank).padStart(2, '0');
+    const item = document.createElement('div');
+    item.className = `card-item ${rankClass}`;
+    item.innerHTML = `
+      <div class="card-ghost" aria-hidden="true">${rankStr}</div>
+      <div class="card-rank">${rankStr}</div>
+      <div class="card-info">
+        <div class="card-title">${escHtml(p.title ?? '')}</div>
+        <div class="card-meta">${escHtml(p.city ?? '')} · ${escHtml(p.region ?? '')}</div>
+        <span class="card-cat">${escHtml(p.category ?? '')}</span>
+      </div>
+      <div class="card-votes">${fmt(p.votesCount ?? 0)}</div>`;
+    grid.appendChild(item);
   });
 
   if (sorted.length === 0) {
-    grid.innerHTML = '<div class="col text-center text-muted py-5">Žiadne projekty pre vybraný región.</div>';
+    grid.innerHTML = '<div class="empty-state">Žiadne projekty pre vybraný región.</div>';
   }
 }
 
@@ -234,17 +321,17 @@ function renderChart(data) {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#94a3b8',
-            boxWidth: 12,
-            font: { size: 11 },
+            color: tc().legend,
+            boxWidth: 10,
+            font: { size: 10, family: "'DM Mono', monospace" },
           },
         },
         tooltip: {
-          backgroundColor: '#1e293b',
-          borderColor: '#334155',
+          backgroundColor: tc().tooltipBg,
+          borderColor: tc().tooltipBorder,
           borderWidth: 1,
-          titleColor: '#e2e8f0',
-          bodyColor: '#94a3b8',
+          titleColor: tc().tooltipTitle,
+          bodyColor: tc().tooltipBody,
           itemSort: (a, b) => b.parsed.y - a.parsed.y,
           callbacks: {
             title: items => {
@@ -263,17 +350,17 @@ function renderChart(data) {
         x: {
           type: 'time',
           time: { tooltipFormat: 'dd.MM HH:mm' },
-          ticks: { color: '#94a3b8', maxTicksLimit: 10, font: { size: 11 } },
-          grid: { color: '#1e293b' },
+          ticks: { color: tc().tickX, maxTicksLimit: 10, font: { size: 10, family: "'DM Mono', monospace" } },
+          grid: { color: tc().gridX },
         },
         y: {
           beginAtZero: false,
           ticks: {
-            color: '#94a3b8',
-            font: { size: 11 },
+            color: tc().tickY,
+            font: { size: 10, family: "'DM Mono', monospace" },
             callback: v => fmt(v),
           },
-          grid: { color: '#334155' },
+          grid: { color: tc().gridY },
         },
       },
     },
@@ -306,7 +393,7 @@ function drawPill(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-const RANK_COLORS = ['#f59e0b', '#94a3b8', '#cd7c4e']; // gold / silver / bronze
+const RANK_COLORS = ['#c8881e', '#808080', '#8c5028']; // gold / silver / bronze
 
 const rankLabelPlugin = {
   id: 'rankLabels',
@@ -329,7 +416,7 @@ const rankLabelPlugin = {
 
       const label = '#' + rank;
       ctx.save();
-      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.font = "bold 11px 'DM Mono', monospace";
       const textW   = ctx.measureText(label).width;
       const pillW   = textW + PILL_PX * 2;
 
@@ -339,20 +426,21 @@ const rankLabelPlugin = {
       const py = bar.y - PILL_H / 2;
 
       // Pill background
-      const bgColor = rank <= 3 ? RANK_COLORS[rank - 1] : 'rgba(15,23,42,0.82)';
+      const colors = tc();
+      const bgColor = rank <= 3 ? RANK_COLORS[rank - 1] : colors.pillBg;
       drawPill(ctx, px, py, pillW, PILL_H, PILL_R);
       ctx.fillStyle = bgColor;
       ctx.fill();
 
       // Pill border for non-podium ranks
       if (rank > 3) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.strokeStyle = colors.pillBorder;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
 
       // Text
-      ctx.fillStyle = rank === 2 ? '#0f172a' : '#ffffff';
+      ctx.fillStyle = rank <= 3 ? (rank === 2 ? '#18150f' : '#fff8ee') : colors.pillText;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(label, px + pillW / 2, bar.y);
@@ -432,11 +520,11 @@ function renderTrendChart(historyData, window) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1e293b',
-          borderColor: '#334155',
+          backgroundColor: tc().tooltipBg,
+          borderColor: tc().tooltipBorder,
           borderWidth: 1,
-          titleColor: '#e2e8f0',
-          bodyColor: '#94a3b8',
+          titleColor: tc().tooltipTitle,
+          bodyColor: tc().tooltipBody,
           callbacks: {
             title: items => items[0].label ?? '',
             label: item => {
@@ -453,12 +541,12 @@ function renderTrendChart(historyData, window) {
       },
       scales: {
         x: {
-          ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => (v >= 0 ? '+' : '') + fmt(v) },
-          grid: { color: '#334155' },
+          ticks: { color: tc().tickX, font: { size: 10, family: "'DM Mono', monospace" }, callback: v => (v >= 0 ? '+' : '') + fmt(v) },
+          grid: { color: tc().gridY },
         },
         y: {
-          ticks: { color: '#e2e8f0', font: { size: 11 } },
-          grid: { color: '#1e293b' },
+          ticks: { color: tc().tickY, font: { size: 10, family: "'DM Mono', monospace" } },
+          grid: { color: tc().gridX },
         },
       },
     },
@@ -479,7 +567,9 @@ document.getElementById('region-menu').addEventListener('click', e => {
   state.region = item.dataset.region;
   persistFilters();
   document.getElementById('region-label').textContent =
-    state.region || 'Všetky regióny';
+    state.region || 'VŠETKY REGIÓNY';
+  document.getElementById('region-wrap').classList.remove('open');
+  document.getElementById('regionDropdown').setAttribute('aria-expanded', 'false');
 
   document.querySelectorAll('#region-menu .dropdown-item').forEach(el =>
     el.classList.toggle('active', el.dataset.region === state.region));
@@ -513,6 +603,16 @@ document.getElementById('trend-filter').addEventListener('click', e => {
   if (state.historyData) renderTrendChart(state.historyData, state.trendWindow);
 });
 
+// ── Cards panel collapse ──────────────────────────────────────────────────────
+
+document.getElementById('cards-panel-hdr').addEventListener('click', () => {
+  const panel = document.getElementById('cards-panel');
+  const btn   = document.getElementById('cards-collapse-btn');
+  const collapsed = panel.classList.toggle('is-collapsed');
+  btn.setAttribute('aria-expanded', !collapsed);
+  try { localStorage.setItem('vmCardsCollapsed', collapsed ? '1' : '0'); } catch(e) {}
+});
+
 // ── Init + auto-refresh ───────────────────────────────────────────────────────
 
 async function init() {
@@ -521,6 +621,31 @@ async function init() {
     b.classList.toggle('active', parseInt(b.dataset.hours, 10) === state.hours));
   document.querySelectorAll('#trend-filter button').forEach(b =>
     b.classList.toggle('active', parseInt(b.dataset.window, 10) === state.trendWindow));
+
+  // Theme toggle
+  updateThemeBtn();
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+  // Restore cards panel collapsed state
+  try {
+    if (localStorage.getItem('vmCardsCollapsed') === '1') {
+      document.getElementById('cards-panel').classList.add('is-collapsed');
+      document.getElementById('cards-collapse-btn').setAttribute('aria-expanded', 'false');
+    }
+  } catch(e) {}
+
+  // Custom region dropdown toggle (no Bootstrap JS)
+  const regionBtn  = document.getElementById('regionDropdown');
+  const regionWrap = document.getElementById('region-wrap');
+  regionBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = regionWrap.classList.toggle('open');
+    regionBtn.setAttribute('aria-expanded', isOpen);
+  });
+  document.addEventListener('click', () => {
+    regionWrap.classList.remove('open');
+    regionBtn.setAttribute('aria-expanded', 'false');
+  });
 
   await Promise.all([fetchLatest(), fetchRegions(), fetchHistory()]);
 }

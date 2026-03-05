@@ -1,4 +1,4 @@
-# CLAUDE.md – Voting Monitor
+# AGENT.md – Voting Monitor
 
 ## Projekt
 
@@ -10,7 +10,7 @@ Bez frameworku, bez buildu, bez závislostí okrem CDN knižníc v HTML.
 ```
 cron/fetch.php  →  data/snapshots/*.json + data/latest.json
 api.php         →  číta data/, odpovedá JSON
-index.html + app.js + style.css  →  dashboard (Bootstrap 5, Chart.js)
+index.html + app.js + style.css  →  dashboard (Chart.js, vlastný CSS)
 ```
 
 ## Kľúčové súbory
@@ -19,8 +19,10 @@ index.html + app.js + style.css  →  dashboard (Bootstrap 5, Chart.js)
 |---|---|
 | `cron/fetch.php` | Sťahuje API, ukladá snapshot + prepíše latest.json |
 | `api.php` | Tri akcie: `latest`, `regions`, `history` |
-| `app.js` | State management, fetch, rendering kariet a grafu |
-| `style.css` | Dark theme, CSS variables, card hover efekty |
+| `app.js` | State management, fetch, rendering kariet a grafov |
+| `style.css` | Terminal Noir theme, CSS variables, light/dark mode |
+| `favicon.svg` | SVG favicon (3 amber bary) |
+| `docs/logo.svg` | SVG logo 512×512 pre OG metadata |
 
 ## Stav aplikácie (app.js)
 
@@ -37,10 +39,18 @@ state = { region: '', hours: 0, trendWindow: 10, latestData: null, historyData: 
 ## Trend chart – detaily
 
 - **`buildRankMap()`** – zostaví mapu `title → poradie` z `latestData`, rešpektuje aktívny región filter
-- **`rankLabelPlugin`** – inline Chart.js plugin; kreslí `#N` bielym textom zarovnaným vľavo vo vnútri každého baru; ak je bar príliš úzky (< 28px), label sa preskočí; ranks sa ukladajú na `chart._ranks`
-- **`setTrendChartHeight(count)`** – nastavuje výšku `.chart-container--trend` dynamicky: `count × 36px + 48px`, min 80px; CSS `transition: height 0.2s ease` zabezpečuje plynulú animáciu
-- Tooltip obsahuje aj aktuálne poradie projektu: `+12 hlasov  |  poradie: #2`
-- Pri update (zmena okna/regiónu) sa `_ranks` aktualizuje pred `chart.update('none')`
+- **`rankLabelPlugin`** – Canvas API plugin; kreslí pill s `#N` vo vnútri každého baru; gold/silver/bronze pre top 3; `chart._ranks` + `chart._currentVotes`
+- **`setTrendChartHeight(count)`** – nastavuje výšku `.chart-container--trend` dynamicky: `count × 36px + 48px`, min 80px
+- Tooltip: `+12 hlasov  |  spolu: 847  |  poradie: #2`
+- Pri update sa `_ranks` a `_currentVotes` aktualizujú pred `chart.update('none')`
+
+## Light / Dark mode
+
+- CSS tokeny v `html[data-theme="dark"]` a `html[data-theme="light"]`
+- Inline script v `<head>` nastavuje tému pred renderom (bez FOUC)
+- Preferencia: `localStorage.vmTheme` → `prefers-color-scheme` → light
+- `CHART_THEMES` objekt + `applyChartTheme()` aktualizuje Chart.js bez rekreácie
+- `rankLabelPlugin` číta tému cez `tc()` pri každom vykreslení
 
 ## URL hash (filter persistence)
 
@@ -76,13 +86,16 @@ Polia projektu: `id`, `slug`, `title`, `description`, `descriptionFull`, `catego
 
 ## Pravidlá pre zmeny
 
+- **Nikde nepodpisovať menom AI nástroja** – ani v kóde, dokumentácii, commit messages ani PR
 - **Nemazať snapshoty** – retencia je zámerná, žiadne TTL ani cleanup cron
-- **Nesahovať do CDN odkazov** – Bootstrap 5.3.3, Chart.js 4.4.3, chartjs-adapter-date-fns 3.0.0 sú zafixované verzie
+- **CDN verzie sú zafixované** – Chart.js 4.4.3, chartjs-adapter-date-fns 3.0.0; nemeniť bez testovania
+- **Žiadny Bootstrap** – layout je čistý CSS Grid; nepridávať Bootstrap späť
 - **Chart update vs. destroy** – `renderChart()` aj `renderTrendChart()` robia `chart.update('none')` ak inštancia existuje; destroy len keď nie sú žiadne dáta
-- **Trend chart nevyžaduje nový fetch** – pri zmene `trendWindow` sa rerendruje z `state.historyData`; nový `fetchHistory` sa volá len pri zmene `region` alebo `hours`
+- **Trend chart nevyžaduje nový fetch** – pri zmene `trendWindow` sa rerendruje z `state.historyData`
 - **Výška trend chartu je dynamická** – `setTrendChartHeight()` prepočítava pri každom renderi; nemeň `.chart-container--trend` na fixnú výšku v CSS
 - **Sampovanie v history** – limit 500 snapshotov je pre výkon, nemeň bez testu s reálnymi dátami
-- **PHP kompatibilita** – server beží na PHP 7.4.33; nepoužívaj union typy (`string|false`), `never` return type, `match`, `enum`, ani `fiber` – všetko sú PHP 8.0+ featury
+- **PHP kompatibilita** – server beží na PHP 7.4.33; nepoužívaj union typy (`string|false`), `never` return type, `match`, `enum`, ani `fiber`
+- **SSL verifikácia vypnutá** – `verify_peer: false` v `cron/fetch.php` kvôli produkcii
 
 ## Časté úpravy
 
@@ -92,7 +105,7 @@ Polia projektu: `id`, `slug`, `title`, `description`, `descriptionFull`, `catego
 
 ### Pridať nové pole z API do kariet
 1. `api.php` – `history` action: pridaj pole do `$projectsMap[$id]`
-2. `app.js` – `renderCards()`: pridaj HTML do template literal v `.project-card`
+2. `app.js` – `renderCards()`: pridaj HTML do template literal v `.card-item`
 
 ### Zmeniť maximálny počet snapshotov v histórii
 - `api.php` riadok s `$maxSnapshots = 500`
